@@ -5,7 +5,7 @@ A simple implementation of a blockchain primarily implemented by following [this
 ### Building and Running
 
 ```
-$ go build -o tarkus ./main.go
+$ go build -o tarkus ./main.go -port 8080
 or
-$ go run ./main.go
+$ go run ./main.go -port 8080
 ```

@@ -8,21 +8,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Server struct {
-	Port int
+type App struct {
+	
 }
 
-func (app *Server) ServeHTTP() {
+func (app *App) ServeHTTP(port int) {
 	r := mux.NewRouter()
 	
-	app.InitializeRoutes(r)
+	InitializeRoutes(r)
 	
-	log.Printf("Server listening on port %d", app.Port)
-
-	http.ListenAndServe(fmt.Sprintf(":%d", app.Port), r)
+	log.Printf("Server listening on port %d", port)
+	http.ListenAndServe(fmt.Sprintf(":%d", port), r)
 }
 
-func (app *Server) InitializeRoutes(r *mux.Router) {
+func InitializeRoutes(r *mux.Router) {
 	r.HandleFunc("/chain", test).Methods("GET")
 	r.HandleFunc("/mine", test).Methods("GET")
 

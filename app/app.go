@@ -9,10 +9,11 @@ import (
 )
 
 type App struct {
-	
+
 }
 
 func (app *App) ServeHTTP(port int) {
+	// blockchain := Blockchain{}
 	r := mux.NewRouter()
 	
 	InitializeRoutes(r)

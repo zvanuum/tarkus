@@ -14,6 +14,6 @@ func main() {
 	
 	blockchain := blockchain.InitializeBlockchain()
 	
-	app := app.App{Blockchain: blockchain}
+	app := app.App{Blockchain: &blockchain}
 	app.ServeHTTP(port)
 }

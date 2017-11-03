@@ -6,14 +6,14 @@ import (
 	"log"
 	
 	"github.com/gorilla/mux"
+	"github.com/zachvanuum/tarkus/blockchain"
 )
 
 type App struct {
-
+	Blockchain blockchain.Blockchain
 }
 
 func (app *App) ServeHTTP(port int) {
-	// blockchain := Blockchain{}
 	r := mux.NewRouter()
 	
 	InitializeRoutes(r)

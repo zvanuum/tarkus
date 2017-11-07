@@ -25,11 +25,7 @@ func (app *App) ServeHTTP(port int) {
 
 func InitializeRoutes(app *App, r *mux.Router) {
 	r.HandleFunc("/chain", api.GetChainHandler(app.Blockchain)).Methods("GET")
-	r.HandleFunc("/mine", test).Methods("GET")
+	r.HandleFunc("/mine", api.GetMineHandler(app.Blockchain)).Methods("GET")
 
 	r.HandleFunc("/transaction/new", api.PostNewTransactionHandler(app.Blockchain)).Methods("POST")
-}
-
-func test(w http.ResponseWriter, r *http.Request) {
-	log.Println("test")
 }

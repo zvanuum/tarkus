@@ -3,8 +3,11 @@
 A simple implementation of a blockchain primarily implemented by following [this](https://hackernoon.com/learn-blockchains-by-building-one-117428612f46) Medium article.
 
 TODO:
-- Persist chain to file or database somehow
+- API documentation
+- Persist chain to file or database somehow (Redis list structure maybe?)
 - Use GraphQL for API
+- Dockerize
+- Logrus for better logging
 
 ### Building and Running
 

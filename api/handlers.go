@@ -7,29 +7,28 @@ import (
 	"encoding/json"
 
 	"github.com/zachvanuum/tarkus/blockchain"
+	"github.com/zachvanuum/tarkus/models"
 )
 
-// TODO: Use Logrus for logging request/response to http server
-
-func GetChainHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
+func ChainHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("[GetChainHandler] - Received request")
+		log.Println("[ChainHandler] - Received request")
 
-		response := ChainResponse{
+		response := models.ChainResponse{
 			Chain: chain.Chain,
 			Length: len(chain.Chain),
 		}
 
 		if err := unmarshalToResponse(w, response); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("[GetChainHandler] - Failed to unmarshal GetChain response", err)
+			log.Println("[ChainHandler] - Failed to unmarshal GetChain response", err)
 		}
 	}
 }
 
-func GetMineHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
+func MineHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("[GetMineHandler] - Received request")
+		log.Println("[MineHandler] - Received request")
 
 		lastBlock := chain.LastBlock()
 		proof := chain.ProofOfWork(lastBlock.Proof)
@@ -39,7 +38,7 @@ func GetMineHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r 
 		chain.NewTransaction("0", chain.ID, 1)
 
 		block := chain.NewBlock(proof, prevHash)
-		response := MineResponse{
+		response := models.MineResponse{
 			Message: "A new block was mined.",
 			Index: block.Index,
 			Transactions: block.Transactions,
@@ -49,86 +48,89 @@ func GetMineHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r 
 
 		if err := unmarshalToResponse(w, response); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("[GetMineHandler] - Failed to unmarshal GetMine response", err)
+			log.Println("[MineHandler] - Failed to unmarshal GetMine response", err)
 		}		
 	}
 }
 
-func GetConsensusHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
+func ConsensusHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var newChain []blockchain.Block
-		maxLen := len(chain.Chain)
-	
-		for node, _ := range chain.Nodes {
-			res, err := http.Get(node + "/chain")
-			if err != nil {
-				log.Printf("[ResolveConflicts] - Failed to retrieve chain for node %s during consensus.\n", node)
-			}
-					
-			defer res.Body.Close()
-			if res.StatusCode == http.StatusOK {
-				decoder := json.NewDecoder(res.Body)
-				var chainRes ChainResponse
-	
-				if err := decoder.Decode(&chainRes); err == nil {
-					if chainRes.Length > maxLen && blockchain.ValidChain(chain.Chain) {
-						maxLen = chainRes.Length
-						newChain = chainRes.Chain
-					}
-				} else {
-					log.Printf("[ResolveConflicts] - Failed to decode chain response from node %s\n", node)
-				}	
-			}
-	
+		log.Println("[ConsensusHandler] - Received request")
+
+		replaced := chain.ResolveConflicts()
+		response := models.ConsensusResponse{
+			Message: "",
+			Chain: chain.Chain,
 		}
-	
-		if len(newChain) > 0 {
-			chain.Chain = newChain
-			// return true
+
+		if replaced {
+			response.Message = fmt.Sprintf("Chain on node %s was replaced", chain.ID)
+		} else {
+			response.Message = fmt.Sprintf("Chain on node %s is authoritative", chain.ID)
 		}
-	
-		// return false
+
+		if err := unmarshalToResponse(w, response); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println("[ConsensusHandler] - Failed to unmarshal ConsensusResponse", err)
+		}
 	}
 }
 
-func PostNewTransactionHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
+func NewTransactionHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("[PostNewTransactionHandler] - Received request")
+		log.Println("[NewTransactionHandler] - Received request")
 
 		decoder := json.NewDecoder(r.Body)
-		var transaction blockchain.Transaction
+		var transaction models.Transaction
 
 		if err := decoder.Decode(&transaction); err == nil {
 			index := chain.NewTransaction(transaction.Sender, transaction.Recipient, transaction.Amount)
-			response := MessageResponse{ Message: fmt.Sprintf("Transaction added to block at index %d", index) }
+			response := models.MessageResponse{ Message: fmt.Sprintf("Transaction added to block at index %d", index) }
 
 			if err := unmarshalToResponse(w, response); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				log.Println("[PostNewTransactionHandler] - Failed to unmarshal PostNewTransaction response", err)
+				log.Println("[NewTransactionHandler] - Failed to unmarshal PostNewTransaction response", err)
 			}
 		} else {
 			http.Error(w, "Request body missing transaction fields: expected a sender, recipient, and famount.", http.StatusBadRequest)
-			log.Println("[PostNewTransactionHandler] - Did not receive needed fields in POST body, failed to decode body to Transaction", err)
+			log.Println("[NewTransactionHandler] - Did not receive needed fields in POST body, failed to decode body to Transaction", err)
 		}
 		defer r.Body.Close()
 	}
 }
 
-func PostRegisterNodeHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
+func RegisterNodesHandler(chain *blockchain.Blockchain) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("[PostRegisterNodeHandler] - Received request")
+		log.Println("[RegisterNodeHandler] - Received request")
 		
 		decoder := json.NewDecoder(r.Body)
-		var reqBody RegisterNodeRequest
+		var reqBody models.RegisterNodesRequest
 		
 		if err := decoder.Decode(&reqBody); err == nil {
-			chain.RegisterNode(reqBody.URL)
+			numNodesToAdd := len(reqBody.URLs)
+			if numNodesToAdd == 0 {
+				http.Error(w, "Request body had an empty list of nodes.", http.StatusBadRequest)
+				return
+			}
 
-			w.WriteHeader(http.StatusOK)
-			log.Printf("[PostRegiterNodeHandler] - Registered new node %s\n", reqBody.URL)
+			for _, url := range reqBody.URLs {
+				chain.RegisterNode(url)
+			}
+
+			log.Printf("[RegisterNodeHandler] - Registered %d new nodes %v\n", numNodesToAdd, reqBody.URLs)
+
+			response := models.RegisterNodesResponse{ 
+				Message: fmt.Sprintf("Registered new nodes to node %s", chain.ID), 
+				TotalNodes: len(chain.Nodes),
+			}
+			
+			if err := unmarshalToResponse(w, response); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				log.Println("[RegisterNodesnHandler] - Failed to unmarshal RegisterNodesResponse", err)
+			}	
 		} else {
 			http.Error(w, "Request body missing url field.", http.StatusBadRequest)
-			log.Println("[PostRegisterNodeHandler] - Did not receive needed fields in POST body, failed to decode body to RegisterNodeBody", err)
+			log.Println("[RegisterNodeHandler] - Did not receive needed fields in POST body, failed to decode body to RegisterNodeBody", err)
 		}
 	}
 }

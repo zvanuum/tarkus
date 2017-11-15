@@ -11,9 +11,9 @@ TODO:
 
 ### Building and Running
 
-```
-To build the binary:
-$ go build -o tarkus ./main.go -port 8080
-or to run the program:
-$ go run ./main.go -port 8080
-```
+
+- To build the binary:
+`$ go build -o tarkus ./main.go -port 8080`
+
+- To run the program:
+`$ go run ./main.go -port 8080`

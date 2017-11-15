@@ -32,6 +32,7 @@ type BlockchainApp interface {
 	ProofOfWork(lastProof int64) int64 
 	RegisterNode(url string)
 	ResolveConflicts() bool
+	GetNodes() []string
 }
 
 type Blockchain struct {
@@ -114,6 +115,18 @@ func (blockchain *Blockchain) ResolveConflicts() bool {
 	}
 
 	return false
+}
+
+func (blockchain *Blockchain) GetNodes() []string {
+	nodes := make([]string, len(blockchain.Nodes))
+
+	i := 0
+	for node := range blockchain.Nodes {
+		nodes[i] = node
+		i++
+	}
+
+	return nodes
 }
 
 func ValidProof(lastProof int64, proof int64) bool {

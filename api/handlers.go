@@ -122,6 +122,7 @@ func RegisterNodesHandler(chain *blockchain.Blockchain) func(w http.ResponseWrit
 			response := models.RegisterNodesResponse{ 
 				Message: fmt.Sprintf("Registered new nodes to node %s", chain.ID), 
 				TotalNodes: len(chain.Nodes),
+				Nodes: chain.GetNodes(),
 			}
 			
 			if err := unmarshalToResponse(w, response); err != nil {
